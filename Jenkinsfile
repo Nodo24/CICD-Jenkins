@@ -6,7 +6,6 @@ pipeline {
     }
 
     stages {
-
         stage('Checkout') {
             steps {
                 checkout scm
@@ -42,7 +41,7 @@ pipeline {
 
         stage('Build Docker Image') {
             steps {
-                sh "docker build -t ${IMAGE_NAME} ."
+                sh "docker build -t ${env.IMAGE_NAME} ."
             }
         }
 
@@ -51,9 +50,19 @@ pipeline {
                 sh """
                     docker stop my-react-app || true
                     docker rm my-react-app || true
-                    docker run -d -p ${APP_PORT}:3000 --name my-react-app ${IMAGE_NAME}
+                    docker run -d \
+                      -p ${env.APP_PORT}:3000 \
+                      --name my-react-app \
+                      -e HOST=0.0.0.0 \
+                      ${env.IMAGE_NAME}
                 """
             }
+        }
+    }
+
+    post {
+        always {
+            cleanWs()
         }
     }
 }
