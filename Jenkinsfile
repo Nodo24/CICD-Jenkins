@@ -1,5 +1,8 @@
 pipeline {
     agent any
+    tools {
+        nodejs 'node'
+    }
     environment {
         APP_PORT = "${env.BRANCH_NAME == 'main' ? '3000' : '3001'}"
         IMAGE_NAME = "my-react-app:${env.BRANCH_NAME}"
