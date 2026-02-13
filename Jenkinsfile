@@ -89,8 +89,12 @@ pipeline {
         stage('Trigger Environment Deployment') {
             steps {
                 script {
-                    def deployJob = env.BRANCH_NAME == 'main' ? 'Deploy_to_main' : 'Deploy_to_dev'
-                    build job: CD_deploy_manual, wait: false
+                    build job: 'cd_deploy_manual', 
+                          wait: false, 
+                          parameters: [
+                              string(name: 'BRANCH_NAME', value: env.BRANCH_NAME),
+                              string(name: 'IMAGE_TAG', value: env.IMAGE_TAG)
+                          ]
                 }
             }
         }
