@@ -5,7 +5,13 @@ pipeline {
         nodejs 'node'
     }
 
+    environment {
+        DOCKER_REPO = "nkobauri/my-react-app"
+        VERSION = "v1.0"
+    }
+
     stages {
+
         stage('Checkout') {
             steps {
                 checkout scm
@@ -17,46 +23,83 @@ pipeline {
                 script {
                     if (env.BRANCH_NAME == 'main') {
                         env.APP_PORT = "3000"
-                    } else {
+                        env.IMAGE_NAME = "nodemain:${VERSION}"
+                    } else if (env.BRANCH_NAME == 'dev') {
                         env.APP_PORT = "3001"
+                        env.IMAGE_NAME = "nodedev:${VERSION}"
                     }
-                    env.IMAGE_NAME = "my-react-app:${env.BRANCH_NAME}"
+
+                    env.FULL_IMAGE = "${DOCKER_REPO}/${IMAGE_NAME}"
                 }
             }
         }
 
-        stage('Build') {
+        stage('Build Application') {
             steps {
                 sh "chmod +x scripts/build.sh"
                 sh "./scripts/build.sh"
             }
         }
 
-        stage('Test') {
+        stage('Test Application') {
             steps {
                 sh "chmod +x scripts/test.sh"
                 sh "./scripts/test.sh"
             }
         }
 
-        stage('Build Docker Image') {
+        stage('Lint Dockerfile - Hadolint') {
             steps {
-                sh "docker build -t ${env.IMAGE_NAME} ."
+                sh """
+                    docker run --rm \
+                      -i hadolint/hadolint < Dockerfile
+                """
             }
         }
 
-        stage('Deploy') {
+        stage('Build Docker Image') {
+            steps {
+                sh "docker build -t ${FULL_IMAGE} ."
+            }
+        }
+
+        stage('Security Scan - Trivy') {
             steps {
                 sh """
-                    docker stop my-react-app-${env.BRANCH_NAME} || true
-                    docker rm my-react-app-${env.BRANCH_NAME} || true
-            
-                    docker run -d \
-                      -p ${env.APP_PORT}:3000 \
-                      --name my-react-app-${env.BRANCH_NAME} \
-                      -e HOST=0.0.0.0 \
-                      ${env.IMAGE_NAME}
+                    trivy image --exit-code 1 --severity HIGH,CRITICAL ${FULL_IMAGE}
                 """
+            }
+        }
+
+        stage('Docker Login') {
+            steps {
+                withCredentials([usernamePassword(
+                    credentialsId: 'nkobauri',
+                    usernameVariable: 'DOCKER_USER',
+                    passwordVariable: 'DOCKER_PASS'
+                )]) {
+                    sh """
+                        echo $DOCKER_PASS | docker login -u $DOCKER_USER --password-stdin
+                    """
+                }
+            }
+        }
+
+        stage('Push Image to Docker Hub') {
+            steps {
+                sh "docker push ${FULL_IMAGE}"
+            }
+        }
+
+        stage('Trigger Environment Deployment') {
+            steps {
+                script {
+                    if (env.BRANCH_NAME == 'main') {
+                        build job: 'Deploy_to_main'
+                    } else if (env.BRANCH_NAME == 'dev') {
+                        build job: 'Deploy_to_dev'
+                    }
+                }
             }
         }
     }
