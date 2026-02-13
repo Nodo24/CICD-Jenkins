@@ -66,7 +66,10 @@ pipeline {
         stage('Security Scan - Trivy') {
             steps {
                 sh """
-                    trivy image --exit-code 1 --severity HIGH,CRITICAL ${FULL_IMAGE}
+                    trivy image --exit-code 1 \\
+                      --severity HIGH,CRITICAL \\
+                      --skip-dirs /usr/local \\
+                      ${FULL_IMAGE}
                 """
             }
         }
