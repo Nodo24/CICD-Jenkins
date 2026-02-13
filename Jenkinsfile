@@ -90,7 +90,7 @@ pipeline {
             steps {
                 script {
                     def deployJob = env.BRANCH_NAME == 'main' ? 'Deploy_to_main' : 'Deploy_to_dev'
-                    build job: deployJob, wait: false
+                    build job: CD_deploy_manual, wait: false
                 }
             }
         }
