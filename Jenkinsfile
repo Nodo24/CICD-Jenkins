@@ -49,9 +49,14 @@ pipeline {
         stage('Deploy') {
             steps {
                 sh """
-                    docker stop my-react-app || true
-                    docker rm my-react-app || true
-                    docker run -d -p ${APP_PORT}:3000 --name my-react-app ${IMAGE_NAME}
+                    docker stop my-react-app-${env.BRANCH_NAME} || true
+                    docker rm my-react-app-${env.BRANCH_NAME} || true
+            
+                    docker run -d \
+                      -p ${env.APP_PORT}:3000 \
+                      --name my-react-app-${env.BRANCH_NAME} \
+                      -e HOST=0.0.0.0 \
+                      ${env.IMAGE_NAME}
                 """
             }
         }
