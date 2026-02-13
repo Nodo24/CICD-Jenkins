@@ -1,4 +1,4 @@
-FROM node:18-alpine
+FROM node:20-alpine
 WORKDIR /opt
 RUN apk update && apk upgrade --no-cache
 COPY . /opt
