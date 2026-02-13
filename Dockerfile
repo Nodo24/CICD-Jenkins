@@ -1,5 +1,6 @@
-FROM node:7.8.0
+FROM node:20-alpine
 WORKDIR /opt
-ADD . /opt
+RUN apk update && apk upgrade --no-cache
+COPY . /opt
 RUN npm install
-ENTRYPOINT npm run start
+ENTRYPOINT ["npm", "run", "start"]
