@@ -20,12 +20,13 @@ pipeline {
                     if (env.BRANCH_NAME == 'main') {
                         env.APP_PORT = "3000"
                         env.IMAGE_TAG = "main-${VERSION}"
+                        env.DEPLOY_JOB = "Deploy_to_main"
                     } else if (env.BRANCH_NAME == 'dev') {
                         env.APP_PORT = "3001"
                         env.IMAGE_TAG = "dev-${VERSION}"
+                        env.DEPLOY_JOB = "Deploy_to_dev"
                     }
                     env.FULL_IMAGE = "${DOCKER_USER}/${REPO_NAME}:${IMAGE_TAG}"
-                    
                 }
             }
         }
@@ -77,7 +78,6 @@ pipeline {
                             echo $DOCKER_PASS | docker login -u $DOCKER_USER --password-stdin
                         '''
                     }
-                    
                 }
             }
         }
@@ -89,11 +89,11 @@ pipeline {
         stage('Trigger Environment Deployment') {
             steps {
                 script {
-                    build job: 'cd_deploy_manual', 
+                    build job: env.DEPLOY_JOB, 
                           wait: false, 
                           parameters: [
-                              string(name: 'BRANCH_NAME', value: env.BRANCH_NAME),
-                              string(name: 'IMAGE_TAG', value: env.IMAGE_TAG)
+                              string(name: 'IMAGE_TAG', value: env.IMAGE_TAG),
+                              string(name: 'APP_PORT', value: env.APP_PORT)
                           ]
                 }
             }
